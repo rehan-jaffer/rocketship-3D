@@ -16,13 +16,12 @@ import {
 } from "react-three-fiber";
 import useKey from "@rooks/use-key";
 import * as THREE from "three";
-import { RGBA_ASTC_10x10_Format, PointLight } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { OutlineEffects, GlowEffects } from "./effects";
+import { OutlineEffects } from "./effects";
 
 const randomShade = () => {
   let shades = ["#ffcb77", "#00b4d8", "#DB3069"];
-  return shades[Math.floor(Math.random()*(shades.length))]
+  return shades[Math.floor(Math.random() * shades.length)];
 };
 
 extend({ OrbitControls });
