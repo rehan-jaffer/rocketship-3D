@@ -7,60 +7,26 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import {
-  Canvas,
-  useFrame,
-  extend,
-  useThree,
-  useUpdate,
-} from "react-three-fiber";
+import { Canvas, useFrame, extend, useUpdate } from "react-three-fiber";
 import useKey from "@rooks/use-key";
 import * as THREE from "three";
 import { RGBA_ASTC_10x10_Format, PointLight } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { OutlineEffects, GlowEffects } from "./effects";
+import { Panel } from "./Panel";
+import { CameraControls } from "./CameraControls";
 
 const randomShade = () => {
   let shades = ["#ffcb77", "#00b4d8", "#DB3069"];
-  return shades[Math.floor(Math.random()*(shades.length))]
+  return shades[Math.floor(Math.random() * shades.length)];
 };
 
 extend({ OrbitControls });
 
 const TrailContext = React.createContext(null);
 
-const Panel = ({ stats }) => {
-  return (
-    <div className="panels">
-      <div className="panel">
-        <strong>θ</strong> {stats.angle}{" "}
-      </div>
-      <div className="panel">
-        <strong>φ</strong> {stats.azimuth}
-      </div>
-      <div className="panel">
-        {stats.velocity} <strong>m/s</strong>
-      </div>
-    </div>
-  );
-};
-
-const CameraControls = () => {
-  // Get a reference to the Three.js Camera, and the canvas html element.
-  // We need these to setup the OrbitControls component.
-  // https://threejs.org/docs/#examples/en/controls/OrbitControls
-  const {
-    camera,
-    gl: { domElement },
-  } = useThree();
-  // Ref to the controls, so that we can update them on every frame using useFrame
-  const controls = useRef();
-  useFrame((state) => controls.current.update());
-  return <orbitControls ref={controls} args={[camera, domElement]} />;
-};
-
-const Universe = ({ children }) => {
-  const [trail, setTrail] = React.useState([[]]);
+const Universe = (props: any) => {
+  const [trail, setTrail] = React.useState([[]] as Array<number[]>);
   const [trailIndex, setTrailIndex] = React.useState(0);
   const [trailColors, setTrailColors] = React.useState([]);
   const [stats, setStats] = React.useState({
@@ -75,7 +41,7 @@ const Universe = ({ children }) => {
     setTrail((trail) => [[]]);
   };
 
-  const addTrail = (position) => {
+  const addTrail = (position: any) => {
     setTrail((trail) => {
       /*      if (trail.length > 50) {
         return [].concat(position);
@@ -89,7 +55,7 @@ const Universe = ({ children }) => {
     });
   };
 
-  const changeTrailColor = () => {};
+  const changeTrailColor = () => null;
 
   return (
     <body>
@@ -120,7 +86,7 @@ const Universe = ({ children }) => {
 const STAR_COUNT = 100;
 
 const Stars = () => {
-  const [stars, setStars] = React.useState([]);
+  const [stars, setStars] = React.useState([] as Array<number[]>);
   const mesh = React.useRef();
 
   useEffect(() => {
@@ -141,7 +107,7 @@ const Stars = () => {
     <group ref={mesh}>
       {stars.map((star, idx) => (
         <mesh
-          position={star}
+          position={new THREE.Vector3(...star)}
           rotation={[Math.random(), Math.random(), Math.random()]}
         >
           <boxBufferGeometry attach="geometry" args={[0.01, 0.01, 0.01]} />
@@ -155,8 +121,8 @@ const Stars = () => {
   );
 };
 
-function Ship(props) {
-  const mesh = useRef();
+function Ship(props: any) {
+  const mesh = useRef<THREE.Mesh>();
 
   const trailContext = React.useContext(TrailContext);
 
@@ -173,73 +139,60 @@ function Ship(props) {
     updateMeshPosition();
   });
 
-  const boundX = (value, breakTrail) => {
-    if (value <= -5) {
+  const LOWER_BOUND = -5;
+  const UPPER_BOUND = 5;
+
+  const bound = (value: any, breakTrail: any) => {
+    if (value <= LOWER_BOUND) {
       breakTrail();
-      return 5;
+      return UPPER_BOUND;
     }
-    if (value >= 5) {
+    if (value >= UPPER_BOUND) {
       breakTrail();
-      return -5;
+      return LOWER_BOUND;
     }
     return value;
   };
 
-  const boundY = (value, breakTrail) => {
-    if (value <= -5) {
-      breakTrail();
-      return 5;
-    }
-    if (value >= 5) {
-      breakTrail();
-      return -5;
-    }
-    return value;
-  };
+  const updateX = (shipState: any, angle: any, azimuth: any) =>
+    shipState.position[0] +
+    shipState.velocity[0] * Math.cos(angle) * Math.cos(azimuth);
+  const updateY = (shipState: any, angle: any, azimuth: any) =>
+    shipState.position[1] +
+    shipState.velocity[0] * Math.cos(angle) * Math.cos(azimuth);
+  const updateZ = (shipState: any, angle: any, azimuth: any) =>
+    shipState.position[2] +
+    shipState.velocity[0] * Math.cos(angle) * Math.cos(azimuth);
 
-  const boundZ = (value, breakTrail) => {
-    if (value <= -5) {
-      breakTrail();
-      return 5;
-    }
-    if (value >= 5) {
-      breakTrail();
-      return -5;
-    }
-    return value;
-  };
+  const newPosition = () => [
+    updateX(shipState, angle, azimuth),
+    updateY(shipState, angle, azimuth),
+    updateZ(shipState, angle, azimuth),
+  ];
 
-  const newPosition = () => {
-    return [
-      shipState.position[0] +
-        shipState.velocity[0] * Math.cos(angle) * Math.cos(azimuth),
-      shipState.position[1] +
-        shipState.velocity[0] * Math.cos(angle) * Math.sin(azimuth),
-      shipState.position[2] + shipState.velocity[0] * Math.sin(angle),
-    ];
-  };
-
-  const updateShipPosition = (breakTrail) => {
+  const updateShipPosition = (breakTrail: any) => {
     const nextPosition = newPosition();
 
     setShipState((shipState) => {
       return {
         ...shipState,
         position: [
-          boundX(nextPosition[0], breakTrail),
-          boundY(nextPosition[1], breakTrail),
-          boundZ(nextPosition[2], breakTrail),
+          bound(nextPosition[0], breakTrail),
+          bound(nextPosition[1], breakTrail),
+          bound(nextPosition[2], breakTrail),
         ],
       };
     });
   };
 
   const updateMeshPosition = () => {
-    [
-      mesh.current.position.x,
-      mesh.current.position.y,
-      mesh.current.position.z,
-    ] = shipState.position;
+    if (mesh.current !== undefined) {
+      [
+        mesh.current.position.x,
+        mesh.current.position.y,
+        mesh.current.position.z,
+      ] = shipState.position;
+    }
   };
 
   const updateShipVelocity = () => {
@@ -284,13 +237,13 @@ function Ship(props) {
   });
 
   useKey(["p"], () => {
-    props.setTrailColors((colors) => {
+    props.setTrailColors((colors: any) => {
       return colors.concat([randomShade()]);
     });
-    props.setTrailIndex((index) => {
+    props.setTrailIndex((index: any) => {
       return index + 1;
     });
-    props.setTrail((trail) => {
+    props.setTrail((trail: any) => {
       return trail.concat([[]]);
     });
   });
@@ -299,7 +252,10 @@ function Ship(props) {
 
   // Rotate mesh every frame, this is outside of React without overhead
   useFrame(() => {
+    if (mesh.current === undefined) return null;
+
     mesh.current.lookAt(new THREE.Vector3(...newPosition()));
+
     if (Date.now() - time > 1000) {
       setTime(Date.now());
       updateShipVelocity();
@@ -338,7 +294,7 @@ function Ship(props) {
           <meshStandardMaterial
             attach="material"
             color={"black"}
-            wireframe={false}
+            wireframe={true}
           />
         </mesh>
         <mesh {...props} position={[0, 0, -0.05]}>
@@ -354,31 +310,34 @@ function Ship(props) {
   );
 }
 
-const Trail = (props) => {
+const Trail = (props: any) => {
   // This reference will give us direct access to the mesh
-  const convertPoints = (points) =>
-    points.map((v, i) => new THREE.Vector3(v[0], v[1], v[2]));
-  const ref = React.useRef();
+  const convertPoints = (points: any) =>
+    points.map(
+      (v: [number, number, number], i: number) =>
+        new THREE.Vector3(v[0], v[1], v[2])
+    );
+
+  const ref = React.useRef<THREE.Mesh>();
 
   // Rotate mesh every frame, this is outside of React without overhead
   useFrame(() => {});
 
-  const meshes = useUpdate((self) => {
-    self.setFromPoints(convertPoints(self.trail));
-    self.verticesNeedUpdate = true;
-  });
+  const meshes = useUpdate((mesh: THREE.Mesh) => {
+    // mesh.setFromPoints(convertPoints(self.trail));
+    // mesh.verticesNeedUpdate = true;
+   }, []);
 
   return (
     <group ref={ref}>
-      {props.trail.map((trail, idx) => {
+      {props.trail.map((trail: any, idx: number) => {
         return (
           <line>
-            <bufferGeometry
+            <geometry
               attach="geometry"
               vertices={convertPoints(trail)}
               args={[]}
               ref={props.trail.length == idx + 1 ? meshes : null}
-              trail={trail}
             />
             <lineBasicMaterial
               attach="material"
@@ -392,27 +351,6 @@ const Trail = (props) => {
     </group>
   );
 };
-
-function Box(props) {
-  // This reference will give us direct access to the mesh
-  const mesh = useRef();
-
-  // Set up state for the hovered and active state
-  const [hovered, setHover] = useState(false);
-  const [active, setActive] = useState(false);
-
-  // Rotate mesh every frame, this is outside of React without overhead
-  useFrame(() => {});
-
-  return (
-    <group ref={mesh}>
-      <mesh {...props}>
-        <boxBufferGeometry attach="geometry" args={[1, 1, 1]} />
-        <meshStandardMaterial attach="material" />
-      </mesh>
-    </group>
-  );
-}
 
 ReactDOM.render(
   <body>
