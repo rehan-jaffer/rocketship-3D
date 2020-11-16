@@ -45,14 +45,10 @@ const Panel = ({ stats }) => {
 };
 
 const CameraControls = () => {
-  // Get a reference to the Three.js Camera, and the canvas html element.
-  // We need these to setup the OrbitControls component.
-  // https://threejs.org/docs/#examples/en/controls/OrbitControls
   const {
     camera,
     gl: { domElement },
   } = useThree();
-  // Ref to the controls, so that we can update them on every frame using useFrame
   const controls = useRef();
   useFrame((state) => controls.current.update());
   return <orbitControls ref={controls} args={[camera, domElement]} />;
@@ -172,49 +168,35 @@ function Ship(props) {
     updateMeshPosition();
   });
 
-  const boundX = (value, breakTrail) => {
-    if (value <= -5) {
+  const LOWER_BOUND = -5;
+  const UPPER_BOUND = 5;
+
+  const bound = (value, breakTrail) => {
+    if (value <= LOWER_BOUND) {
       breakTrail();
-      return 5;
+      return UPPER_BOUND;
     }
-    if (value >= 5) {
+    if (value >= UPPER_BOUND) {
       breakTrail();
-      return -5;
+      return LOWER_BOUND;
     }
     return value;
   };
 
-  const boundY = (value, breakTrail) => {
-    if (value <= -5) {
-      breakTrail();
-      return 5;
-    }
-    if (value >= 5) {
-      breakTrail();
-      return -5;
-    }
-    return value;
-  };
-
-  const boundZ = (value, breakTrail) => {
-    if (value <= -5) {
-      breakTrail();
-      return 5;
-    }
-    if (value >= 5) {
-      breakTrail();
-      return -5;
-    }
-    return value;
-  };
+  const updateX = (shipState, angle, azimuth) =>
+  shipState.position[0] +
+  shipState.velocity[0] * Math.cos(angle) * Math.cos(azimuth);
+  const updateY = (shipState, angle, azimuth) =>
+  shipState.position[1] +
+    shipState.velocity[0] * Math.cos(angle) * Math.sin(azimuth);
+  const updateZ = (shipState, angle, azimuth) =>
+    shipState.position[2] + shipState.velocity[0] * Math.sin(azimuth);
 
   const newPosition = () => {
     return [
-      shipState.position[0] +
-        shipState.velocity[0] * Math.cos(angle) * Math.cos(azimuth),
-      shipState.position[1] +
-        shipState.velocity[0] * Math.cos(angle) * Math.sin(azimuth),
-      shipState.position[2] + shipState.velocity[0] * Math.sin(angle),
+      updateX(shipState, angle, azimuth),   
+      updateY(shipState, angle, azimuth),   
+      updateZ(shipState, angle, azimuth)
     ];
   };
 
@@ -225,9 +207,9 @@ function Ship(props) {
       return {
         ...shipState,
         position: [
-          boundX(nextPosition[0], breakTrail),
-          boundY(nextPosition[1], breakTrail),
-          boundZ(nextPosition[2], breakTrail),
+          bound(nextPosition[0], breakTrail),
+          bound(nextPosition[1], breakTrail),
+          bound(nextPosition[2], breakTrail),
         ],
       };
     });
@@ -278,8 +260,12 @@ function Ship(props) {
     setShipAngle((angle) => (angle + 0.05) % 6.28);
   });
 
-  useKey(["z"], () => {
+  useKey(["c"], () => {
     setShipAzimuth((angle) => (angle + 0.05) % 6.28);
+  });
+
+  useKey(["z"], () => {
+    setShipAzimuth((angle) => (angle - 0.05) % 6.28);
   });
 
   useKey(["p"], () => {

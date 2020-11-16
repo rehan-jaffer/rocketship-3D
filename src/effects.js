@@ -17,14 +17,14 @@ extend({
 });
 
 export function OutlineEffects({ mesh, children }) {
-    const composer = useRef();
-    const { scene, gl, size, camera, aspect } = useThree();
-    useEffect(() => void composer.current.setSize(size.width, size.height), [
-      size,
-    ]);
-    useFrame(() => composer.current.render(), 2);
-    return (
-        <>
+  const composer = useRef();
+  const { scene, gl, size, camera, aspect } = useThree();
+  useEffect(() => void composer.current.setSize(size.width, size.height), [
+    size,
+  ]);
+  useFrame(() => composer.current.render(), 2);
+  return (
+    <>
       {children}
       <effectComposer ref={composer} args={[gl]}>
         <renderPass
@@ -43,32 +43,8 @@ export function OutlineEffects({ mesh, children }) {
           edgeStrength={5}
           edgeThickness={1}
         />
-      <unrealBloomPass attachArray="passes" args={[undefined, 1.8, 1, 0]} />
+        <unrealBloomPass attachArray="passes" args={[undefined, 1.8, 1, 0]} />
       </effectComposer>
-      </>
-    );
-  }
-
-export function GlowEffects({ mesh, children }) {
-    return null;
-  const composer = useRef();
-  const { scene, gl, size, camera, aspect } = useThree();
-  useEffect(() => void composer.current.setSize(size.width, size.height), [
-    size,
-  ]);
-  useFrame(() => composer.current.render(), 2);
-  return (
-      <>
-    {children}
-    <effectComposer ref={composer} args={[gl]}>
-      <renderPass
-        attachArray="passes"
-        scene={scene}
-        camera={camera}
-        args={[scene, camera]}
-      />
-
-    </effectComposer>
     </>
   );
 }
